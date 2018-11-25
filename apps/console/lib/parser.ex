@@ -1,22 +1,24 @@
 defmodule Console.Parser do
   @open [
-    "otwórz",
-    "odpal",
-    "włącz",
-    "wlacz"
+    "open"
   ]
 
   @search [
-    "wyszukaj",
-    "znajdź",
-    "znajdz",
-    "wygoogluj",
-    "wygugluj"
+    "search",
+    "find me",
+    "find",
+    "get",
+    "get me",
+    "google",
+    "what do you know",
+    "tell me"
+  ]
+
+  @sub_search [
+    "about"
   ]
 
   def parse(string) do
-    is_search = String.contains?(string, @search)
-
     cond do
       String.contains?(string, @search) ->
         search(string)
@@ -34,10 +36,10 @@ defmodule Console.Parser do
 
     IO.inspect command
 
-    url = "google.com/search?q=#{thing_to_search}"
+    # url = "google.com/search?q=#{thing_to_search}"
 
 
-    System.cmd("opera", [url])
+    # System.cmd("opera", [url])
   end
 
   def open(string) do
@@ -45,14 +47,42 @@ defmodule Console.Parser do
   end
 
   def thing_to_search(string) do
-    regex =
-      ~r/.+:(.+)/
-      |> Regex.run(string)
-    case regex do
-      nil ->
-        {:error, :wrong_string}
-      [_, result] ->
-        result
+    cond do
+      String.contains?(string, @sub_search) ->
+        word_list =
+          string
+          |> String.split()
+
+        sub_search_index =
+          word_list
+          |> Enum.reverse()
+          |> Enum.find_index(fn x -> x in @sub_search end)
+          |> Kernel.*(-1)
+
+        list_length = length(word_list) - 1
+
+        _to_search =
+          word_list
+          |> Enum.slice(sub_search_index, list_length)
+          |> Enum.join(" ")
+      true ->
+        word_list =
+          string
+          |> String.split()
+
+        search_index =
+          word_list
+          |> Enum.reverse()
+          |> Enum.find_index(fn x -> x in @search end)
+          |> IO.inspect
+          |> Kernel.*(-1)
+
+        list_length = length(word_list) - 1
+
+        _to_search =
+          word_list
+          |> Enum.slice(search_index, list_length)
+          |> Enum.join(" ")
     end
   end
 
@@ -63,7 +93,7 @@ defmodule Console.Parser do
   defp get_system_correct_command(:search, what) do
     case :os.type do
       {_, :linux} ->
-        {"opera", ["http://google.com/search?q=#{what}"]}
+        "google-chrome http://google.com/search?q=#{what}"
       {_, :darwin} ->
         {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"]}
     end
