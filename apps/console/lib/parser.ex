@@ -62,7 +62,7 @@ defmodule Console.Parser do
 
   defp get_system_correct_command(:search, what) do
     case :os.type do
-      {_, linux} ->
+      {_, :linux} ->
         {"opera", ["http://google.com/search?q=#{what}"]}
       {_, :darwin} ->
         {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"]}
