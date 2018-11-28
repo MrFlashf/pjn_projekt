@@ -1,18 +1,14 @@
 defmodule Console do
-  @moduledoc """
-  Documentation for Console.
-  """
+  use Application
 
-  @doc """
-  Hello world.
+  def start(_type, _args) do
+    import Supervisor.Spec, warn: false
 
-  ## Examples
+    children = [
+      worker(Console.ProgramsServer, [])
+    ]
 
-      iex> Console.hello()
-      :world
-
-  """
-  def hello do
-    :world
+    opts = [strategy: :one_for_one, name: Console.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end

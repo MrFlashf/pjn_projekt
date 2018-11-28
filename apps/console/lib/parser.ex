@@ -15,9 +15,11 @@ defmodule Console.Parser do
   ]
 
   @sub_search [
-    "about"
+    "about",
+    "for"
   ]
 
+  @spec parse(String.t()) :: {String.t(), [String.t()]}
   def parse(string) do
     cond do
       String.contains?(string, @search) ->
@@ -27,25 +29,20 @@ defmodule Console.Parser do
     end
   end
 
+  @spec search(String.t()) :: {String.t(), [String.t()]}
   def search(string) do
     thing_to_search =
       thing_to_search(string)
       |> URI.encode
 
-    command = get_system_correct_command(:search, thing_to_search)
-
-    IO.inspect command
-
-    # url = "google.com/search?q=#{thing_to_search}"
-
-
-    # System.cmd("opera", [url])
+    _command = get_system_correct_command(:search, thing_to_search)
   end
 
   def open(string) do
 
   end
 
+  @spec thing_to_search(String.t()) :: String.t()
   def thing_to_search(string) do
     cond do
       String.contains?(string, @sub_search) ->
@@ -90,10 +87,12 @@ defmodule Console.Parser do
 
   end
 
+  @spec get_system_correct_command(atom, String.t()) :: {String.t(), [String.t()]}
   defp get_system_correct_command(:search, what) do
     case :os.type do
       {_, :linux} ->
-        "google-chrome http://google.com/search?q=#{what}"
+        {"opera", ["http://google.com/search?q=#{what}"]}
+        # "opera http://google.com/search?q=#{what}"
       {_, :darwin} ->
         {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"]}
     end
