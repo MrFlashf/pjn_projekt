@@ -5,7 +5,8 @@ defmodule Console do
     import Supervisor.Spec, warn: false
 
     children = [
-      worker(Console.ProgramsServer, [])
+      worker(Console.ProgramsServer, []),
+      worker(Console.PidsWorker, []),
     ]
 
     opts = [strategy: :one_for_one, name: Console.Supervisor]

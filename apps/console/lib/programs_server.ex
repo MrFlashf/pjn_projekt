@@ -20,12 +20,30 @@ defmodule Console.ProgramsServer do
     GenServer.call(@name, {:is_open, name})
   end
 
+  @spec get_state() :: any()
   def get_state() do
-    _programs = GenServer.call(__MODULE__, :get)
+    _programs = GenServer.call(@name, :get)
+  end
+
+  @spec get_pids() :: any()
+  def get_pids() do
+    _pids = GenServer.call(@name, :get_pids)
+  end
+
+  def delete_pid_from_state(pid) do
+    GenServer.cast(@name, {:delete_pid, pid})
   end
 
   def init(_) do
     {:ok, %{}}
+  end
+
+  def handle_call(:get_pids, _from, state) do
+    pids =
+      state
+      |> Enum.map(fn {_program, pid} -> pid end)
+
+    {:reply, pids, state}
   end
 
   def handle_call({:is_open, name}, _from, state) do
@@ -73,4 +91,12 @@ defmodule Console.ProgramsServer do
     {:noreply, new_state}
   end
 
+  def handle_cast({:delete_pid, pid}, state) do
+    new_state =
+      state
+      |> Enum.reject(fn {_program, pr_pid} -> pr_pid == pid end)
+      |> Enum.into(%{})
+
+    {:noreply, new_state}
+  end
 end

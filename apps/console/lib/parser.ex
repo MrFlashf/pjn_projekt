@@ -1,6 +1,10 @@
 defmodule Console.Parser do
   @open [
-    "open"
+    "open",
+    "turn on",
+    "show",
+    "show me",
+    "see"
   ]
 
   @search [
@@ -19,6 +23,13 @@ defmodule Console.Parser do
     "for"
   ]
 
+  @close [
+    "turn off",
+    "close",
+    "shut",
+    "close"
+  ]
+
   @spec parse(String.t()) :: {String.t(), [String.t()]}
   def parse(string) do
     cond do
@@ -26,6 +37,8 @@ defmodule Console.Parser do
         search(string)
       String.contains?(string, @open) ->
         open(string)
+      String.contains?(string, @close) ->
+        close(string)
     end
   end
 
@@ -39,7 +52,55 @@ defmodule Console.Parser do
   end
 
   def open(string) do
+    thing_to_open = thing_to_open(string)
 
+    _command = get_system_correct_command(:open, thing_to_open)
+  end
+
+  def close(string) do
+    thing_to_close = thing_to_close(string)
+
+    _command = {"kill", thing_to_close}
+  end
+
+  def thing_to_close(string) do
+    word_list =
+      string
+      |> String.split()
+
+    close_index =
+      word_list
+      |> Enum.reverse()
+      |> Enum.find_index(fn x -> x in @close end)
+      |> IO.inspect
+      |> Kernel.*(-1)
+
+    list_length = length(word_list) - 1
+
+    _to_close =
+      word_list
+      |> Enum.slice(close_index, list_length)
+      |> Enum.join("\ ")
+  end
+
+  def thing_to_open(string) do
+    word_list =
+      string
+      |> String.split()
+
+    open_index =
+      word_list
+      |> Enum.reverse()
+      |> Enum.find_index(fn x -> x in @open end)
+      |> IO.inspect
+      |> Kernel.*(-1)
+
+    list_length = length(word_list) - 1
+
+    _to_open =
+      word_list
+      |> Enum.slice(open_index, list_length)
+      |> Enum.join("\ ")
   end
 
   @spec thing_to_search(String.t()) :: String.t()
@@ -84,7 +145,13 @@ defmodule Console.Parser do
   end
 
   defp get_system_correct_command(:open, what) do
+    case :os.type do
+      {_, :linux} ->
+        mime = MIME.from_path(what)
+        program = get_program(mime)
 
+        {program, [what]}
+    end
   end
 
   @spec get_system_correct_command(atom, String.t()) :: {String.t(), [String.t()]}
@@ -92,9 +159,14 @@ defmodule Console.Parser do
     case :os.type do
       {_, :linux} ->
         {"opera", ["http://google.com/search?q=#{what}"]}
-        # "opera http://google.com/search?q=#{what}"
       {_, :darwin} ->
         {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"]}
     end
+  end
+
+  def get_program(mime) do
+    {program_string, _}= System.cmd("xdg-mime", ["query", "default", mime])
+    [program | _] = String.split(program_string, ".")
+    program
   end
 end
