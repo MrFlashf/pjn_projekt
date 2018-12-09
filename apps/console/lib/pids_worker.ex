@@ -19,6 +19,7 @@ defmodule Console.PidsWorker do
   def check_for_pids() do
     pids = ProgramsServer.get_pids()
 
+    # TODO: Tutaj trzeba w zaleności od OS zrobić
     Enum.each(pids, fn pid ->
       ret =
         :os.cmd(:"ps -aux | grep #{pid} | head -1 | awk '{ print $2 }'")
@@ -30,6 +31,15 @@ defmodule Console.PidsWorker do
       end
     end)
   end
+
+  # defp get_working_programs_for_platform() do
+  #   case :os.type do
+  #     {_, :linux} ->
+
+  #     {_, :darwin} ->
+  #       get_pid(command, :mac)
+  #   end
+  # end
 
   def init(_) do
     Process.send_after(self(), :start, @time)

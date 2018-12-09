@@ -4,12 +4,12 @@ defmodule Console.ProgramsServer do
   @name __MODULE__
 
   def start_link() do
-    GenServer.start_link(__MODULE__, [], name: @name)
+    GenServer.start_link(@name, [], name: @name)
   end
   def add_program(name, system_pid) do
     tuple = {name, system_pid}
 
-    GenServer.cast(__MODULE__, {:add_program, tuple})
+    GenServer.cast(@name, {:add_program, tuple})
   end
 
   def get_program_pid(program_name) do
@@ -30,12 +30,23 @@ defmodule Console.ProgramsServer do
     _pids = GenServer.call(@name, :get_pids)
   end
 
+  @spec get_programs() :: [String.t()]
+  def get_programs() do
+    _programs = GenServer.call(@name, :get_programs)
+  end
+
   def delete_pid_from_state(pid) do
     GenServer.cast(@name, {:delete_pid, pid})
   end
 
   def init(_) do
     {:ok, %{}}
+  end
+
+  def handle_call(:get_programs, _from, state) do
+    programs = Map.keys(state)
+
+    {:reply, programs, state}
   end
 
   def handle_call(:get_pids, _from, state) do
@@ -60,7 +71,6 @@ defmodule Console.ProgramsServer do
 
   def handle_call({:get_pid, program_name}, _from, state) do
     program_data = Map.get(state, program_name)
-    IO.inspect state
     message =
       case program_data do
         nil ->

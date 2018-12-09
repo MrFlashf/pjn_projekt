@@ -32,13 +32,15 @@ defmodule Console.Parser do
 
   @spec parse(String.t()) :: {String.t(), [String.t()]}
   def parse(string) do
+    lower_cased = String.downcase(string)
+
     cond do
-      String.contains?(string, @search) ->
-        search(string)
-      String.contains?(string, @open) ->
-        open(string)
-      String.contains?(string, @close) ->
-        close(string)
+      String.contains?(lower_cased, @search) ->
+        search(lower_cased)
+      String.contains?(lower_cased, @open) ->
+        open(lower_cased)
+      String.contains?(lower_cased, @close) ->
+        close(lower_cased)
     end
   end
 
@@ -154,13 +156,13 @@ defmodule Console.Parser do
     end
   end
 
-  @spec get_system_correct_command(atom, String.t()) :: {String.t(), [String.t()]}
+  @spec get_system_correct_command(atom, String.t()) :: {String.t(), [String.t()]} | {String.t(), [String.t()], String.t()}
   defp get_system_correct_command(:search, what) do
     case :os.type do
       {_, :linux} ->
         {"opera", ["http://google.com/search?q=#{what}"]}
       {_, :darwin} ->
-        {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"]}
+        {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"], "Opera"}
     end
   end
 

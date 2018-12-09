@@ -6,7 +6,7 @@ defmodule Console do
 
     children = [
       worker(Console.ProgramsServer, []),
-      worker(Console.PidsWorker, []),
+      # worker(Console.PidsWorker, []),
     ]
 
     opts = [strategy: :one_for_one, name: Console.Supervisor]

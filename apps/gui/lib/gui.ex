@@ -14,6 +14,6 @@ defmodule Gui do
       supervisor(Scenic, viewports: [main_viewport_config])
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one)
+    Supervisor.start_link(children, [strategy: :one_for_one, name: Gui.Supervisor])
   end
 end
