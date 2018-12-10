@@ -1,19 +1,31 @@
 defmodule Console.Logic do
   alias Console.ProgramsServer
 
-  def execute({"kill", program_name}) do
-    :ok = kill_by_name(program_name)
+  def execute({"kill", program_or_thing}) do
+    case kill_by_name(program_or_thing) do
+      :ok ->
+        {:ok, :kill, program_or_thing}
+      {:error, :not_found} ->
+        {:error, :not_found}
+    end
   end
 
-  def execute({command, arguments, program}) do
-    spawn(System, :cmd, [command, arguments])
+  def execute({command, arguments, program, what}) do
+    {_, status} = System.cmd(command, arguments)
 
-    pid = get_pid_for_platform(program)
+    case status do
+      0 ->
+        pid = get_pid_for_platform(program)
 
-    program_lowercased = String.downcase(program)
+        program_lowercased = String.downcase(program)
 
-    ProgramsServer.add_program(program_lowercased, pid)
-    {:ok, program_lowercased}
+        ProgramsServer.add_program(program_lowercased, what, pid)
+        {:ok, program_lowercased}
+      _err_code ->
+        # look for file
+        # try_to_find_file(what)
+        {:error, :cant_open}
+    end
   end
 
   def execute({command, arguments}) do
@@ -43,6 +55,22 @@ defmodule Console.Logic do
     :ok
   end
 
+  # defp try_to_find_file({command, arguments, program, what}) do
+  #   {path, _} = System.cmd("find", [".", "-name", "#{what}*"])
+  #   parsed_path =
+  #     path
+  #     |> String.replace("\n", "")
+
+  #   case parsed_path do
+  #     "" ->
+  #       {:error, :cant_open}
+  #     _ ->
+
+
+  #       execute(command, arguments, program, )
+  #   end
+  # end
+
   defp get_pid(command, :linux) do
     pid =
       :os.cmd(:"ps -ao %cpu,pid,args | grep #{command} | sort --reverse | head -1 | awk '{ print $2 }'")
@@ -68,7 +96,7 @@ defmodule Console.Logic do
       :os.cmd(:"python lswin.py | grep #{command} | head -1| awk '{print $1}'")
       |> to_string()
       |> String.replace("\n", "")
-    # IO.puts "PID: #{pid}"
+      |> IO.inspect
   end
 
   defp get_pid_for_platform(command) do

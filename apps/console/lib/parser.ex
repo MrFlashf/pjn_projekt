@@ -15,7 +15,8 @@ defmodule Console.Parser do
     "get me",
     "google",
     "what do you know",
-    "tell me"
+    "tell me",
+    "look for",
   ]
 
   @sub_search [
@@ -27,10 +28,11 @@ defmodule Console.Parser do
     "turn off",
     "close",
     "shut",
-    "close"
+    "close",
+    "kill"
   ]
 
-  @spec parse(String.t()) :: {String.t(), [String.t()]}
+  @spec parse(String.t()) :: {String.t(), [String.t()]} | {:error, :dont_understand}
   def parse(string) do
     lower_cased = String.downcase(string)
 
@@ -41,6 +43,8 @@ defmodule Console.Parser do
         open(lower_cased)
       String.contains?(lower_cased, @close) ->
         close(lower_cased)
+      true ->
+        {:error, :dont_understand}
     end
   end
 
@@ -74,7 +78,6 @@ defmodule Console.Parser do
       word_list
       |> Enum.reverse()
       |> Enum.find_index(fn x -> x in @close end)
-      |> IO.inspect
       |> Kernel.*(-1)
 
     list_length = length(word_list) - 1
@@ -94,7 +97,6 @@ defmodule Console.Parser do
       word_list
       |> Enum.reverse()
       |> Enum.find_index(fn x -> x in @open end)
-      |> IO.inspect
       |> Kernel.*(-1)
 
     list_length = length(word_list) - 1
@@ -134,7 +136,6 @@ defmodule Console.Parser do
           word_list
           |> Enum.reverse()
           |> Enum.find_index(fn x -> x in @search end)
-          |> IO.inspect
           |> Kernel.*(-1)
 
         list_length = length(word_list) - 1
@@ -150,9 +151,14 @@ defmodule Console.Parser do
     case :os.type do
       {_, :linux} ->
         mime = MIME.from_path(what)
-        program = get_program(mime)
+        program = get_program(:linux, mime)
 
         {program, [what]}
+      {_, :darwin} ->
+        ext = Path.extname(what)
+        program = get_program(:mac, ext)
+
+        {"open", ["-a", program, what], program, what}
     end
   end
 
@@ -162,13 +168,20 @@ defmodule Console.Parser do
       {_, :linux} ->
         {"opera", ["http://google.com/search?q=#{what}"]}
       {_, :darwin} ->
-        {"open", ["-a", "Opera", "http://google.com/search?q=#{what}"], "Opera"}
+        {"open", ["-a", "Google Chrome", "http://google.com/search?q=#{what}"], "Chrome", what}
     end
   end
 
-  def get_program(mime) do
-    {program_string, _}= System.cmd("xdg-mime", ["query", "default", mime])
+  defp get_program(:linux, mime) do
+    {program_string, _} = System.cmd("xdg-mime", ["query", "default", mime])
     [program | _] = String.split(program_string, ".")
+    program
+  end
+  defp get_program(:mac, ext) do
+    {programs_string, _} = System.cmd("duti", ["-x", ext])
+    [program | _] =
+      programs_string
+      |> String.split("\n")
     program
   end
 end

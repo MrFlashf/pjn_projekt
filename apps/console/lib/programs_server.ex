@@ -6,8 +6,14 @@ defmodule Console.ProgramsServer do
   def start_link() do
     GenServer.start_link(@name, [], name: @name)
   end
-  def add_program(name, system_pid) do
-    tuple = {name, system_pid}
+  def add_program(program, system_pid) do
+    tuple = {program, system_pid}
+
+    GenServer.cast(@name, {:add_program, tuple})
+  end
+
+  def add_program(program, file, system_pid) do
+    tuple = {program, file, system_pid}
 
     GenServer.cast(@name, {:add_program, tuple})
   end
@@ -35,6 +41,10 @@ defmodule Console.ProgramsServer do
     _programs = GenServer.call(@name, :get_programs)
   end
 
+  def get_programs_with_arg() do
+    _programs = GenServer.call(@name, :get_programs_with_args)
+  end
+
   def delete_pid_from_state(pid) do
     GenServer.cast(@name, {:delete_pid, pid})
   end
@@ -49,10 +59,18 @@ defmodule Console.ProgramsServer do
     {:reply, programs, state}
   end
 
+  def handle_call(:get_programs_with_args, _from, state) do
+    programs = Enum.map(state, fn {program, args} ->
+      {program, args.what}
+    end)
+
+    {:reply, programs, state}
+  end
+
   def handle_call(:get_pids, _from, state) do
     pids =
       state
-      |> Enum.map(fn {_program, pid} -> pid end)
+      |> Enum.map(fn {_program, %{pid: pid}} -> pid end)
 
     {:reply, pids, state}
   end
@@ -70,13 +88,27 @@ defmodule Console.ProgramsServer do
   end
 
   def handle_call({:get_pid, program_name}, _from, state) do
-    program_data = Map.get(state, program_name)
+    program_data =
+      case Map.get(state, program_name) do
+        nil ->
+          data = Enum.filter(state, fn {_program, %{what: what}} -> what == program_name end)
+          case data do
+            [{_pr, pr_data}] ->
+              pr_data
+            [] ->
+              nil
+          end
+        pr_data ->
+          pr_data
+      end
+
     message =
       case program_data do
         nil ->
           {:error, :not_found}
         _program_data ->
-          {:ok, state[program_name]}
+          pid = program_data.pid
+          {:ok, pid}
       end
 
     {:reply, message, state}
@@ -101,10 +133,22 @@ defmodule Console.ProgramsServer do
     {:noreply, new_state}
   end
 
+  def handle_cast({:add_program, {program_name, file, program_pid}}, state) do
+    new_state =
+      case Map.get(state, program_name) do
+        nil ->
+          Map.put(state, program_name, %{what: file, pid: program_pid})
+        _ ->
+          state
+      end
+
+    {:noreply, new_state}
+  end
+
   def handle_cast({:delete_pid, pid}, state) do
     new_state =
       state
-      |> Enum.reject(fn {_program, pr_pid} -> pr_pid == pid end)
+      |> Enum.reject(fn {_program, %{what: _file, pid: pr_pid}} -> pr_pid == pid end)
       |> Enum.into(%{})
 
     {:noreply, new_state}

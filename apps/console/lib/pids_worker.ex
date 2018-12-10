@@ -4,7 +4,7 @@ defmodule Console.PidsWorker do
   alias Console.ProgramsServer
 
   @name __MODULE__
-  @time 2000
+  @time 500
 
   def start_link() do
     GenServer.start_link(__MODULE__, [], name: @name)
@@ -17,9 +17,17 @@ defmodule Console.PidsWorker do
   end
 
   def check_for_pids() do
+    case :os.type do
+      {_, :linux} ->
+        do_check_for_pid(:linux)
+      {_, :darwin} ->
+        do_check_for_pid(:mac)
+    end
+  end
+
+  defp do_check_for_pid(:linux) do
     pids = ProgramsServer.get_pids()
 
-    # TODO: Tutaj trzeba w zaleności od OS zrobić
     Enum.each(pids, fn pid ->
       ret =
         :os.cmd(:"ps -aux | grep #{pid} | head -1 | awk '{ print $2 }'")
@@ -32,14 +40,20 @@ defmodule Console.PidsWorker do
     end)
   end
 
-  # defp get_working_programs_for_platform() do
-  #   case :os.type do
-  #     {_, :linux} ->
+  defp do_check_for_pid(:mac) do
+    pids = ProgramsServer.get_pids()
 
-  #     {_, :darwin} ->
-  #       get_pid(command, :mac)
-  #   end
-  # end
+    Enum.each(pids, fn pid ->
+      ret =
+        :os.cmd(:"python lswin.py | grep #{pid} | head -1| awk '{print $1}'")
+        |> to_string()
+        |> String.replace("\n", "")
+
+      if ret != pid do
+        ProgramsServer.delete_pid_from_state(pid)
+      end
+    end)
+  end
 
   def init(_) do
     Process.send_after(self(), :start, @time)
